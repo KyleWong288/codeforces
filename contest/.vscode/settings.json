@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "*.htm": "ignore",
+        "algorithm": "cpp",
+        "iostream": "cpp",
+        "vector": "cpp",
+        "xstddef": "cpp",
+        "unordered_map": "cpp",
+        "string": "cpp"
+    }
+}

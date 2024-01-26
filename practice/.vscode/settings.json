@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.htm": "ignore",
+        "utility": "cpp",
+        "ostream": "cpp",
+        "iostream": "cpp"
+    }
+}
