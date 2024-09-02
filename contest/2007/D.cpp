@@ -8,56 +8,55 @@ typedef long long ll;
 
 int N;
 string weights;
-int numVolatile;
-int numStable;
+int numQ, num0, num1, numInternal;
 
-// tracks previous value and current balance between 10 and 01
-void dfs(vector<vector<int>>& adj, int cur, int par, char prevChar, int bal) {
-    if (par >= 0) {
-        if (prevChar == '1' && weights[cur] == '0') ++bal;
-        if (prevChar == '0' && weights[cur] == '1') --bal;
-    }
-    // leaf node base case, check if its volatile:
-    if (par >= 0 && adj[cur].size() == 1) {
-        if (weights[cur] == '?') {
-            if (bal == 1 && prevChar == '0') ++numVolatile;
-            else if (bal == -1 && prevChar == '1') ++numVolatile;
-            else if (bal == 0) ++numVolatile; 
-            else ++numStable;
-        }
-        else {
-            numStable += (bal != 0);
-        }
+// only goal is to count leaves and internal '?'
+void dfs(vector<vector<int>>& adj, int cur, int par) {
+    if (adj[cur].size() == 1 && par != -1) {
+        if (weights[cur] == '?') ++numQ;
+        else if (weights[cur] == '0') ++num0;
+        else ++num1;
         return;
     }
-    // regular case:
-    char myChar = weights[cur];
-    if (myChar == '?') myChar = prevChar;
     for (auto& to : adj[cur]) {
-        if (to == par) continue;
-        dfs(adj, to, cur, myChar, bal);
+        if (to != par) dfs(adj, to, cur);
     }
+    if (par != -1 && weights[cur] == '?') ++numInternal;
 }
 
 // assigning intermediate ? nodes doesn't change anything, just think about all cases of parent {0,1} and child {0,1}
-// ? at leaf or root: impacts at most 1 path
-// choosing 0 or 1 based on top down dfs, then find the set of volatile leaves, p1 and p2 compete in this set
-// ? at root: impacts at least 1 path, not sure between 0 and 1, try both?
-// how to choose root????
-int solve(vector<vector<int>>& edges, bool startP1) {
+// range of scores = [-1, 1], you get +1 or -1 for every switch
+// thus, a leaf has a score iff it has a different value than the root
+// case 1: root is well-defined, players alternate on '?' leaves
+// case 2: root is '?', pick the root first to satisfy the max(cnt0, cnt1)
+// case 3: root is '?', tie between cnt0, cnt1. Whoever picks a leaf/root first is at disadvantage because second player can respond
+int solve(vector<vector<int>>& edges) {
     vector<vector<int>> adj(N);
     for (auto& e : edges) {
         adj[e[0]].push_back(e[1]);
         adj[e[1]].push_back(e[0]);
     }
-    numVolatile = 0;
-    numStable = 0;
-    dfs(adj, 0, -1, 'X', 0);
-    if (startP1) {
-        return numStable + (numVolatile + 1) / 2;
+    numQ = 0, num0 = 0, num1 = 0, numInternal = 0;
+    dfs(adj, 0, -1);
+    // case 1:
+    if (weights[0] == '0') {
+        return num1 + (numQ + 1) / 2;
     }
+    else if (weights[0] == '1') {
+        return num0 + (numQ + 1) / 2;
+    }
+    // case 2:
+    else if (num0 != num1) {
+        return max(num0, num1) + numQ / 2;
+    }
+    // case 3:
     else {
-        return numStable + numVolatile / 2;
+        if (numInternal % 2) {
+            return num0 + (numQ + 1) / 2;
+        }
+        else {
+            return num0 + numQ / 2;
+        }
     }
 }
 
@@ -74,17 +73,7 @@ int main() {
             pr[0]--, pr[1]--;
         }
         cin >> weights;
-        // try both if root is '?'
-        if (weights[0] == '?') {
-            weights[0] = '1';
-            int r1 = solve(edges, 0);
-            weights[0] = '0';
-            int r2 = solve(edges, 0);
-            res[i] = max(r1, r2);
-        }
-        else {
-            res[i] = solve(edges, 1);
-        }
+        res[i] = solve(edges);
     }
     for (auto& r : res) {
         cout << r << endl;
